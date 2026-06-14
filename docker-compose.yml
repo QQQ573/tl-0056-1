@@ -1,0 +1,39 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: dispatch-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+
+  mock-ws:
+    build:
+      context: ./mock-ws
+    container_name: dispatch-mock-ws
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PUSH_INTERVAL=5000
+      - STORE_COUNT=3
+      - RIDER_PER_BRAND=6
+      - INITIAL_BACKLOG=40
+    depends_on:
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: dispatch-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_WS_URL=ws://localhost:8080/ws
+    depends_on:
+      - mock-ws
+
+volumes:
+  redis-data:
